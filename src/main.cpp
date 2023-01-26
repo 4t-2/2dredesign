@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#define SCALEDELTA 0.1
+
 class Line
 {
 	private:
@@ -117,6 +119,10 @@ int main()
 	canvas.setOffset({0, 0, -0.1});
 	canvas.setSize({2000, 1000, 0});
 
+	float windowScale = 0;
+
+	agl::Vec<float, 2> windowSize;
+
 	agl::Shape lineShape([](agl::Shape &shape) {
 		float vertexBufferData[6];
 		float UVBufferData[4];
@@ -148,15 +154,15 @@ int main()
 	Listener listener1(
 		[&]() {
 			line.push_back(Line());
-			agl::Vec<float, 2> pos = event.getPointerWindowPosition() + cameraPosition;
-			pos.y				   = 1080 - pos.y;
+			agl::Vec<float, 2> pos = ((event.getPointerWindowPosition() - (windowSize * .5))*windowScale) + cameraPosition;
+			pos.y				   = pos.y;
 			line[line.size() - 1].set(pos, pos);
 
 			return;
 		},
 		[&]() {
-			agl::Vec<float, 2> pos = event.getPointerWindowPosition() + cameraPosition;
-			pos.y				   = 1080 - pos.y;
+			agl::Vec<float, 2> pos = ((event.getPointerWindowPosition() - (windowSize * .5))*windowScale) + cameraPosition;
+			pos.y				   = pos.y;
 			line[line.size() - 1].setEnd(pos);
 
 			return;
@@ -217,10 +223,9 @@ int main()
 
 	Listener listener3([&]() { mouseStart = event.getPointerWindowPosition(); },
 					   [&]() {
-						   std::cout << cameraOffset << '\n';
 						   cameraPosition = cameraPosition - cameraOffset;
 
-						   cameraOffset = mouseStart - event.getPointerWindowPosition();
+						   cameraOffset = (mouseStart - (event.getPointerWindowPosition())) * windowScale;
 
 						   cameraPosition = cameraPosition + cameraOffset;
 					   },
@@ -234,15 +239,20 @@ int main()
 		event.pollPointer();
 		event.pollKeyboard();
 
+		XWindowAttributes XWinAtt = window.getWindowAttributes();
+
+		windowSize.x = XWinAtt.width;
+		windowSize.y = XWinAtt.height;
+
 		window.clear();
 
 		for (int i = 0; i < line.size(); i++)
 		{
 			window.drawShape(lineShape, [&](agl::RenderWindow &window, agl::Shape &shape) {
 				agl::Vec<float, 2> start = line[i].getStart();
-				start.y					 = 1080 - start.y;
+				start.y					 = start.y;
 				agl::Vec<float, 2> end	 = line[i].getEnd();
-				end.y					 = 1080 - end.y;
+				end.y					 = end.y;
 
 				shape.setPosition(start);
 
@@ -259,6 +269,15 @@ int main()
 		listener1.update(event.isPointerButtonPressed(Button1Mask));
 		listener2.update(event.isKeyPressed(XK_Return));
 
+		if(event.isKeyPressed(XK_Up))
+		{
+			windowScale -= SCALEDELTA;
+		}
+		if(event.isKeyPressed(XK_Down))
+		{
+			windowScale += SCALEDELTA;
+		}
+
 		if (event.isPointerButtonPressed(Button2Mask))
 		{
 			listener3.update(true);
@@ -270,7 +289,10 @@ int main()
 			window.setCursorShape(XC_left_ptr);
 		}
 
+		window.setViewport(0, 0, windowSize.x, windowSize.y);
+
 		camera.setView({cameraPosition.x, cameraPosition.y, 10}, cameraPosition, {0, 1, 0});
+		camera.setOrthographicProjection(-(windowSize.x / 2.) * windowScale, (windowSize.x / 2.) * windowScale, (windowSize.y / 2.) * windowScale, -(windowSize.y / 2.) * windowScale, 0.1, 100);
 
 		window.updateMvp(camera);
 	}
