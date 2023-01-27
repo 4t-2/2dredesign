@@ -11,6 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE Debug) # default build
 
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+message(STATUS "SRC FILES = " ${SRC})
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
 	set (CMAKE_CXX_FLAGS "-g -fsanitize=address")

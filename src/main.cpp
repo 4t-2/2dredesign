@@ -3,49 +3,9 @@
 #include <string>
 #include <vector>
 
-#define SCALEDELTA 0.1
-
-class Line
-{
-	private:
-		agl::Vec<float, 2> start;
-		agl::Vec<float, 2> end;
-
-	public:
-		void set(agl::Vec<float, 2> start, agl::Vec<float, 2> end);
-
-		void setStart(agl::Vec<float, 2> start);
-		void setEnd(agl::Vec<float, 2> end);
-
-		agl::Vec<float, 2> getStart();
-		agl::Vec<float, 2> getEnd();
-};
-
-void Line::setStart(agl::Vec<float, 2> start)
-{
-	this->start = start;
-}
-
-void Line::setEnd(agl::Vec<float, 2> end)
-{
-	this->end = end;
-}
-
-void Line::set(agl::Vec<float, 2> start, agl::Vec<float, 2> end)
-{
-	this->start = start;
-	this->end	= end;
-}
-
-agl::Vec<float, 2> Line::getStart()
-{
-	return start;
-}
-
-agl::Vec<float, 2> Line::getEnd()
-{
-	return end;
-}
+#include "../inc/Circle.hpp"
+#include "../inc/Line.hpp"
+#include "../inc/macros.hpp"
 
 class Listener
 {
@@ -89,6 +49,58 @@ void Listener::update(bool state)
 	}
 }
 
+class DxfFile
+{
+	private:
+		std::fstream *fs;
+
+	public:
+		DxfFile(std::string path);
+		~DxfFile();
+
+		void writeEntity(Entity entity);
+};
+
+DxfFile::DxfFile(std::string path)
+{
+	fs = new std::fstream(path, std::ios::out);
+
+	*fs << "0\n";
+	*fs << "SECTION\n";
+	*fs << "2\n";
+	*fs << "ENTITIES\n";
+}
+
+DxfFile::~DxfFile()
+{
+	*fs << "0\n";
+	*fs << "ENDSEC\n";
+	*fs << "0\n";
+	*fs << "EOF\n";
+
+	fs->close();
+
+	delete fs;
+}
+
+void DxfFile::writeEntity(Entity entity)
+{
+	*fs << "0\n";
+	*fs << entity.type << "\n";
+	*fs << "8\n";
+	*fs << "0\n";
+	*fs << "10\n";
+	*fs << std::to_string(entity.xpp) << "\n"; // x
+	*fs << "20\n";
+	*fs << std::to_string(entity.ypp) << "\n"; // x
+	*fs << "11\n";
+	*fs << std::to_string(entity.xop) << "\n"; // x
+	*fs << "21\n";
+	*fs << std::to_string(entity.yop) << "\n"; // x
+	*fs << "40\n";
+	*fs << std::to_string(entity.dpfv) << "\n"; // x
+}
+
 int main()
 {
 	agl::RenderWindow window;
@@ -117,7 +129,7 @@ int main()
 	canvas.setColor(agl::Color::White);
 	canvas.setPosition({0, 0, 0});
 	canvas.setOffset({0, 0, -0.1});
-	canvas.setSize({2000, 1000, 0});
+	canvas.setSize({CANVAS_X, CANVAS_Y, 0});
 
 	float windowScale = 0;
 
@@ -144,25 +156,60 @@ int main()
 		shape.setBufferData(vertexBufferData, UVBufferData, 2);
 	});
 
+	agl::Shape circleShape([](agl::Shape &shape) {
+		int vertices = 30;
+
+		float *vertexBufferData = (float *)malloc(vertices * 3 * sizeof(float));
+		float *UVBufferData		= (float *)malloc(vertices * 2 * sizeof(float));
+
+		for (int i = 0; i < vertices; i++)
+		{
+			float angle = (PI * 2 / vertices) * i;
+
+			agl::Vec<float, 2> position = agl::pointOnCircle(angle);
+
+			vertexBufferData[(i * 3) + 0] = position.x;
+			vertexBufferData[(i * 3) + 1] = position.y;
+			vertexBufferData[(i * 3) + 2] = 0;
+		}
+
+		for (int i = 0; i < vertices; i++)
+		{
+			UVBufferData[(i * 2) + 0] = (vertexBufferData[(i * 3) + 0] / 2) + 0.5;
+			UVBufferData[(i * 2) + 1] = (vertexBufferData[(i * 3) + 1] / 2) + 0.5;
+		}
+
+		shape.genBuffers();
+		shape.setMode(GL_LINE_LOOP);
+		shape.setBufferData(vertexBufferData, UVBufferData, vertices);
+	});
+
 	lineShape.setTexture(&blank);
 	lineShape.setColor(agl::Color::Black);
 
-	std::vector<Line> line;
+	std::vector<Line>	line;
+	std::vector<Circle> circle;
+
+	circle.push_back(Circle());
+	circle[0].setStart({0, 0});
+	circle[0].setRadius(50);
 
 	agl::Vec<float, 2> cameraPosition;
 
 	Listener listener1(
 		[&]() {
 			line.push_back(Line());
-			agl::Vec<float, 2> pos = ((event.getPointerWindowPosition() - (windowSize * .5))*windowScale) + cameraPosition;
-			pos.y				   = pos.y;
+			agl::Vec<float, 2> pos =
+				((event.getPointerWindowPosition() - (windowSize * .5)) * windowScale) + cameraPosition;
+			pos.y = pos.y;
 			line[line.size() - 1].set(pos, pos);
 
 			return;
 		},
 		[&]() {
-			agl::Vec<float, 2> pos = ((event.getPointerWindowPosition() - (windowSize * .5))*windowScale) + cameraPosition;
-			pos.y				   = pos.y;
+			agl::Vec<float, 2> pos =
+				((event.getPointerWindowPosition() - (windowSize * .5)) * windowScale) + cameraPosition;
+			pos.y = pos.y;
 			line[line.size() - 1].setEnd(pos);
 
 			return;
@@ -171,49 +218,23 @@ int main()
 
 	Listener listener2([&]() { return; }, [&]() { return; },
 					   [&]() {
-						   std::cout << "writing\n";
+						   std::string path = "./test.dxf";
+						   std::cout << "writing " << line.size() << " entities to " << path << "\n";
 
-						   std::ofstream fs("test.dxf");
+						   std::cout << '\n';
 
-						   fs << "0\n";
-						   fs << "SECTION\n";
-						   fs << "2\n";
-						   fs << "ENTITIES\n";
+						   DxfFile file(path);
 
-						   std::cout << "\n " << line.size() << "\n";
-
-						   for (int i = 0; i < line.size(); i++)
+						   for (Entity entity : line)
 						   {
-							   std::cout << "start " << line[i].getStart() << '\n';
-							   std::cout << "end   " << line[i].getEnd() << '\n';
-
-							   // line
-							   fs << "0\n";
-							   fs << "LINE\n";
-							   fs << "8\n";
-							   fs << "0\n";
-							   // start
-							   fs << "10\n";
-							   fs << std::to_string(line[i].getStart().x / 100) << "\n"; // x
-							   fs << "20\n";
-							   fs << std::to_string(line[i].getStart().y / 100) << "\n"; // x
-							   fs << "30\n";
-							   fs << "0.0\n"; // z
-							   // end
-							   fs << "11\n";
-							   fs << std::to_string(line[i].getEnd().x / 100) << "\n"; // x
-							   fs << "21\n";
-							   fs << std::to_string(line[i].getEnd().y / 100) << "\n"; // x
-							   fs << "31\n";
-							   fs << "0.0\n"; // z
+							   file.writeEntity(entity);
 						   }
 
-						   fs << "0\n";
-						   fs << "ENDSEC\n";
-						   fs << "0\n";
-						   fs << "EOF\n";
+						   for (Entity entity : circle)
+						   {
+							   file.writeEntity(entity);
+						   }
 
-						   fs.close();
 						   return;
 					   });
 
@@ -262,6 +283,20 @@ int main()
 			});
 		}
 
+		for (int i = 0; i < circle.size(); i++)
+		{
+			window.drawShape(circleShape, [&](agl::RenderWindow &window, agl::Shape &shape) {
+				shape.setPosition(circle[i].getStart());
+
+				agl::Vec<float, 2> size = agl::Vec<float, 2>{1, 1} * circle[i].getRadius();
+
+				shape.setOffset(size * -.5);
+				shape.setSize(size);
+
+				window.drawShape(shape);
+			});
+		}
+
 		window.drawShape(canvas);
 
 		window.display();
@@ -269,11 +304,11 @@ int main()
 		listener1.update(event.isPointerButtonPressed(Button1Mask));
 		listener2.update(event.isKeyPressed(XK_Return));
 
-		if(event.isKeyPressed(XK_Up))
+		if (event.isKeyPressed(XK_Up))
 		{
 			windowScale -= SCALEDELTA;
 		}
-		if(event.isKeyPressed(XK_Down))
+		if (event.isKeyPressed(XK_Down))
 		{
 			windowScale += SCALEDELTA;
 		}
@@ -292,7 +327,9 @@ int main()
 		window.setViewport(0, 0, windowSize.x, windowSize.y);
 
 		camera.setView({cameraPosition.x, cameraPosition.y, 10}, cameraPosition, {0, 1, 0});
-		camera.setOrthographicProjection(-(windowSize.x / 2.) * windowScale, (windowSize.x / 2.) * windowScale, (windowSize.y / 2.) * windowScale, -(windowSize.y / 2.) * windowScale, 0.1, 100);
+		camera.setOrthographicProjection(-(windowSize.x / 2.) * windowScale, (windowSize.x / 2.) * windowScale,
+										 (windowSize.y / 2.) * windowScale, -(windowSize.y / 2.) * windowScale, 0.1,
+										 100);
 
 		window.updateMvp(camera);
 	}
