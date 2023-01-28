@@ -7,6 +7,8 @@
 #include "../inc/Line.hpp"
 #include "../inc/macros.hpp"
 
+#define CIRCLEVERTICIES 30
+
 class Listener
 {
 	private:
@@ -116,13 +118,25 @@ int main()
 	window.getShaderUniforms(shader);
 	shader.use();
 
-	agl::Camera camera;
-	camera.setOrthographicProjection(0, 1920, 1080, 0, 0.1, 100);
-	camera.setView({0, 0, 10}, {0, 0, 0}, {0, 1, 0});
-	window.updateMvp(camera);
+	agl::Camera canvasCamera;
+	canvasCamera.setOrthographicProjection(0, 1920, 1080, 0, 0.1, 100);
+	canvasCamera.setView({0, 0, 10}, {0, 0, 0}, {0, 1, 0});
+
+	agl::Camera guiCamera;
+	guiCamera.setOrthographicProjection(0, 1920, 1080, 0, 0.1, 100);
+	guiCamera.setView({0, 0, 10}, {0, 0, 0}, {0, 1, 0});
 
 	agl::Texture blank;
 	blank.setBlank();
+
+	agl::Font font;
+	font.setup("/usr/share/fonts/TTF/Arial.TTF", 50);
+
+	agl::Text text;
+	text.setFont(&font);
+	text.setColor(agl::Color::Red);
+	text.setPosition({100, 100, 1});
+	text.setScale(1);
 
 	agl::Rectangle canvas;
 	canvas.setTexture(&blank);
@@ -157,14 +171,12 @@ int main()
 	});
 
 	agl::Shape circleShape([](agl::Shape &shape) {
-		int vertices = 30;
+		float vertexBufferData[CIRCLEVERTICIES * 3];
+		float UVBufferData[CIRCLEVERTICIES * 2];
 
-		float *vertexBufferData = (float *)malloc(vertices * 3 * sizeof(float));
-		float *UVBufferData		= (float *)malloc(vertices * 2 * sizeof(float));
-
-		for (int i = 0; i < vertices; i++)
+		for (int i = 0; i < CIRCLEVERTICIES; i++)
 		{
-			float angle = (PI * 2 / vertices) * i;
+			float angle = (PI * 2 / CIRCLEVERTICIES) * i;
 
 			agl::Vec<float, 2> position = agl::pointOnCircle(angle);
 
@@ -173,7 +185,7 @@ int main()
 			vertexBufferData[(i * 3) + 2] = 0;
 		}
 
-		for (int i = 0; i < vertices; i++)
+		for (int i = 0; i < CIRCLEVERTICIES; i++)
 		{
 			UVBufferData[(i * 2) + 0] = (vertexBufferData[(i * 3) + 0] / 2) + 0.5;
 			UVBufferData[(i * 2) + 1] = (vertexBufferData[(i * 3) + 1] / 2) + 0.5;
@@ -181,8 +193,11 @@ int main()
 
 		shape.genBuffers();
 		shape.setMode(GL_LINE_LOOP);
-		shape.setBufferData(vertexBufferData, UVBufferData, vertices);
+		shape.setBufferData(vertexBufferData, UVBufferData, CIRCLEVERTICIES);
 	});
+
+	circleShape.setColor(agl::Color::Black);
+	circleShape.setTexture(&blank);
 
 	lineShape.setTexture(&blank);
 	lineShape.setColor(agl::Color::Black);
@@ -191,68 +206,93 @@ int main()
 	std::vector<Circle> circle;
 
 	circle.push_back(Circle());
-	circle[0].setStart({0, 0});
-	circle[0].setRadius(50);
 
 	agl::Vec<float, 2> cameraPosition;
 
-	Listener listener1(
+	int entity = 0;
+
+	Listener entitySwitcher(
+		[&] {
+			entity++;
+			if (entity > 1)
+			{
+				entity = 0;
+			}
+		},
+		[&] {}, [&] {});
+
+	Listener entityDrawer(
 		[&]() {
-			line.push_back(Line());
 			agl::Vec<float, 2> pos =
 				((event.getPointerWindowPosition() - (windowSize * .5)) * windowScale) + cameraPosition;
-			pos.y = pos.y;
-			line[line.size() - 1].set(pos, pos);
+
+			if (entity == 0)
+			{
+				line.push_back(Line());
+				line[line.size() - 1].set(pos, pos);
+			}
+			else
+			{
+				circle.push_back(Circle());
+				circle[circle.size() - 1].setStart(pos);
+			}
 
 			return;
 		},
 		[&]() {
 			agl::Vec<float, 2> pos =
 				((event.getPointerWindowPosition() - (windowSize * .5)) * windowScale) + cameraPosition;
-			pos.y = pos.y;
-			line[line.size() - 1].setEnd(pos);
+
+			if (entity == 0)
+			{
+				line[line.size() - 1].setEnd(pos);
+			}
+			else
+			{
+				circle[circle.size() - 1].setRadius((pos - circle[circle.size() - 1].getStart()).length());
+			}
 
 			return;
 		},
 		[&]() { return; });
 
-	Listener listener2([&]() { return; }, [&]() { return; },
-					   [&]() {
-						   std::string path = "./test.dxf";
-						   std::cout << "writing " << line.size() << " entities to " << path << "\n";
+	Listener dxfSaver([&]() { return; }, [&]() { return; },
+					  [&]() {
+						  std::string path = "./test.dxf";
+						  std::cout << "writing " << line.size() << " entities to " << path << "\n";
 
-						   std::cout << '\n';
+						  std::cout << '\n';
 
-						   DxfFile file(path);
+						  DxfFile file(path);
 
-						   for (Entity entity : line)
-						   {
-							   file.writeEntity(entity);
-						   }
+						  for (Entity entity : line)
+						  {
+							  file.writeEntity(entity);
+						  }
 
-						   for (Entity entity : circle)
-						   {
-							   file.writeEntity(entity);
-						   }
+						  for (Entity entity : circle)
+						  {
+							  file.writeEntity(entity);
+						  }
 
-						   return;
-					   });
+						  return;
+					  });
 
 	agl::Vec<float, 2> cameraOffset;
 
 	agl::Vec<float, 2> mouseStart;
 
-	Listener listener3([&]() { mouseStart = event.getPointerWindowPosition(); },
-					   [&]() {
-						   cameraPosition = cameraPosition - cameraOffset;
+	Listener cameraController([&]() { mouseStart = event.getPointerWindowPosition(); },
+							  [&]() {
+								  cameraPosition = cameraPosition - cameraOffset;
 
-						   cameraOffset = (mouseStart - (event.getPointerWindowPosition())) * windowScale;
+								  cameraOffset = (mouseStart - (event.getPointerWindowPosition())) * windowScale;
 
-						   cameraPosition = cameraPosition + cameraOffset;
-					   },
-					   [&]() {
-						   cameraOffset = {0, 0};
-					   });
+								  cameraPosition = cameraPosition + cameraOffset;
+							  },
+							  [&]() {
+								  cameraOffset = {0, 0};
+							  });
 
 	while (!event.windowClose())
 	{
@@ -266,6 +306,8 @@ int main()
 		windowSize.y = XWinAtt.height;
 
 		window.clear();
+
+		window.updateMvp(canvasCamera);
 
 		for (int i = 0; i < line.size(); i++)
 		{
@@ -290,7 +332,6 @@ int main()
 
 				agl::Vec<float, 2> size = agl::Vec<float, 2>{1, 1} * circle[i].getRadius();
 
-				shape.setOffset(size * -.5);
 				shape.setSize(size);
 
 				window.drawShape(shape);
@@ -299,10 +340,23 @@ int main()
 
 		window.drawShape(canvas);
 
+		window.updateMvp(guiCamera);
+
+		if(entity == 0)
+		{
+			text.setText("Line");
+		} else {
+			text.setText("Circle");
+		}
+
+		window.drawText(text);
+
+		text.clearText();
+
 		window.display();
 
-		listener1.update(event.isPointerButtonPressed(Button1Mask));
-		listener2.update(event.isKeyPressed(XK_Return));
+		entityDrawer.update(event.isPointerButtonPressed(Button1Mask));
+		dxfSaver.update(event.isKeyPressed(XK_Return));
 
 		if (event.isKeyPressed(XK_Up))
 		{
@@ -315,24 +369,33 @@ int main()
 
 		if (event.isPointerButtonPressed(Button2Mask))
 		{
-			listener3.update(true);
+			cameraController.update(true);
 			window.setCursorShape(XC_fleur);
 		}
 		else
 		{
-			listener3.update(false);
+			cameraController.update(false);
 			window.setCursorShape(XC_left_ptr);
+		}
+
+		entitySwitcher.update(event.isKeyPressed(XK_space));
+
+		if(event.isKeyPressed(XK_Escape))
+		{
+			line.clear();
+			circle.clear();
 		}
 
 		window.setViewport(0, 0, windowSize.x, windowSize.y);
 
-		camera.setView({cameraPosition.x, cameraPosition.y, 10}, cameraPosition, {0, 1, 0});
-		camera.setOrthographicProjection(-(windowSize.x / 2.) * windowScale, (windowSize.x / 2.) * windowScale,
-										 (windowSize.y / 2.) * windowScale, -(windowSize.y / 2.) * windowScale, 0.1,
-										 100);
-
-		window.updateMvp(camera);
+		canvasCamera.setView({cameraPosition.x, cameraPosition.y, 10}, cameraPosition, {0, 1, 0});
+		canvasCamera.setOrthographicProjection(-(windowSize.x / 2.) * windowScale, (windowSize.x / 2.) * windowScale,
+											   (windowSize.y / 2.) * windowScale, -(windowSize.y / 2.) * windowScale,
+											   0.1, 100);
 	}
+
+	blank.deleteTexture();
+	font.deleteFont();
 
 	window.close();
 }
