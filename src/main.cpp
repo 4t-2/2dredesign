@@ -3,11 +3,21 @@
 #include <string>
 #include <vector>
 
+#include <GL/gl.h>
+
 #include "../inc/Circle.hpp"
 #include "../inc/Line.hpp"
 #include "../inc/macros.hpp"
 
 #define CIRCLEVERTICIES 30
+
+int roundInterval(float input, int interval)
+{
+	float amount = input / interval;
+	amount += .5;
+
+	return (int)amount * interval;
+}
 
 class Listener
 {
@@ -145,7 +155,7 @@ int main()
 	canvas.setOffset({0, 0, -0.1});
 	canvas.setSize({CANVAS_X, CANVAS_Y, 0});
 
-	float windowScale = 0;
+	float windowScale = 1;
 
 	agl::Vec<float, 2> windowSize;
 
@@ -207,7 +217,7 @@ int main()
 
 	circle.push_back(Circle());
 
-	agl::Vec<float, 2> cameraPosition;
+	agl::Vec<float, 2> cameraPosition = canvas.getSize() * .5;
 
 	int entity = 0;
 
@@ -226,6 +236,9 @@ int main()
 			agl::Vec<float, 2> pos =
 				((event.getPointerWindowPosition() - (windowSize * .5)) * windowScale) + cameraPosition;
 
+			pos.x = roundInterval(pos.x, 10);
+			pos.y = roundInterval(pos.y, 10);
+
 			if (entity == 0)
 			{
 				line.push_back(Line());
@@ -243,6 +256,9 @@ int main()
 			agl::Vec<float, 2> pos =
 				((event.getPointerWindowPosition() - (windowSize * .5)) * windowScale) + cameraPosition;
 
+			pos.x = roundInterval(pos.x, 10);
+			pos.y = roundInterval(pos.y, 10);
+			
 			if (entity == 0)
 			{
 				line[line.size() - 1].setEnd(pos);
@@ -309,6 +325,8 @@ int main()
 
 		window.updateMvp(canvasCamera);
 
+		glUniform1f(shader.getUniformLocation("winScale"), windowScale);
+
 		for (int i = 0; i < line.size(); i++)
 		{
 			window.drawShape(lineShape, [&](agl::RenderWindow &window, agl::Shape &shape) {
@@ -360,12 +378,14 @@ int main()
 
 		if (event.isKeyPressed(XK_Up))
 		{
-			windowScale -= SCALEDELTA;
+			windowScale -= SCALEDELTA * windowScale;
 		}
 		if (event.isKeyPressed(XK_Down))
 		{
-			windowScale += SCALEDELTA;
+			windowScale += SCALEDELTA * windowScale;
 		}
+
+		std::cout << windowScale << std::endl;
 
 		if (event.isPointerButtonPressed(Button2Mask))
 		{
@@ -392,6 +412,7 @@ int main()
 		canvasCamera.setOrthographicProjection(-(windowSize.x / 2.) * windowScale, (windowSize.x / 2.) * windowScale,
 											   (windowSize.y / 2.) * windowScale, -(windowSize.y / 2.) * windowScale,
 											   0.1, 100);
+		guiCamera.setOrthographicProjection(0, windowSize.x, windowSize.y, 0, 0.1, 10);
 	}
 
 	blank.deleteTexture();

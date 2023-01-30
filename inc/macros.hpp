@@ -1,6 +1,6 @@
 #pragma once
 
-#define SCALEDELTA 0.1
+#define SCALEDELTA 0.05
 
 #define CANVAS_X 420
 #define CANVAS_Y 300
