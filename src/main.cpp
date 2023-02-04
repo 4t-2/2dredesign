@@ -7,6 +7,7 @@
 
 #include "../inc/Circle.hpp"
 #include "../inc/Line.hpp"
+#include "../inc/Menu.hpp"
 #include "../inc/macros.hpp"
 
 #define CIRCLEVERTICIES 30
@@ -123,10 +124,11 @@ int main()
 	agl::Event event;
 	event.setWindow(window);
 
-	agl::Shader shader;
-	shader.loadFromFile("./vert.glsl", "./frag.glsl");
-	window.getShaderUniforms(shader);
-	shader.use();
+	agl::Shader dotShader;
+	dotShader.loadFromFile("./vert.glsl", "./dotFrag.glsl");
+
+	agl::Shader basicShader;
+	basicShader.loadFromFile("./vert.glsl", "./frag.glsl");
 
 	agl::Camera canvasCamera;
 	canvasCamera.setOrthographicProjection(0, 1920, 1080, 0, 0.1, 100);
@@ -140,20 +142,17 @@ int main()
 	blank.setBlank();
 
 	agl::Font font;
-	font.setup("/usr/share/fonts/TTF/Arial.TTF", 50);
-
-	agl::Text text;
-	text.setFont(&font);
-	text.setColor(agl::Color::Red);
-	text.setPosition({100, 100, 1});
-	text.setScale(1);
+	font.setup("/usr/share/fonts/TTF/Arial.TTF", 20);
 
 	agl::Rectangle canvas;
 	canvas.setTexture(&blank);
 	canvas.setColor(agl::Color::White);
 	canvas.setPosition({0, 0, 0});
-	canvas.setOffset({0, 0, -0.1});
+	canvas.setOffset({0, 0, 1});
 	canvas.setSize({CANVAS_X, CANVAS_Y, 0});
+
+	Menu<int, int> testMenu;
+	testMenu.setup({100, 100, 5}, {100, 200}, &blank, &font);
 
 	float windowScale = 1;
 
@@ -258,7 +257,7 @@ int main()
 
 			pos.x = roundInterval(pos.x, 10);
 			pos.y = roundInterval(pos.y, 10);
-			
+
 			if (entity == 0)
 			{
 				line[line.size() - 1].setEnd(pos);
@@ -323,19 +322,18 @@ int main()
 
 		window.clear();
 
+		basicShader.use();
+		window.getShaderUniforms(basicShader);
 		window.updateMvp(canvasCamera);
-
-		glUniform1f(shader.getUniformLocation("winScale"), windowScale);
 
 		for (int i = 0; i < line.size(); i++)
 		{
 			window.drawShape(lineShape, [&](agl::RenderWindow &window, agl::Shape &shape) {
-				agl::Vec<float, 2> start = line[i].getStart();
-				start.y					 = start.y;
-				agl::Vec<float, 2> end	 = line[i].getEnd();
-				end.y					 = end.y;
+				agl::Vec<float, 3> start = line[i].getStart();
+				agl::Vec<float, 3> end	 = line[i].getEnd();
 
 				shape.setPosition(start);
+				shape.setOffset({0, 0, 2});
 
 				shape.setSize(end - start);
 
@@ -347,6 +345,7 @@ int main()
 		{
 			window.drawShape(circleShape, [&](agl::RenderWindow &window, agl::Shape &shape) {
 				shape.setPosition(circle[i].getStart());
+				shape.setOffset({0, 0, 2});
 
 				agl::Vec<float, 2> size = agl::Vec<float, 2>{1, 1} * circle[i].getRadius();
 
@@ -356,20 +355,25 @@ int main()
 			});
 		}
 
-		window.drawShape(canvas);
-
 		window.updateMvp(guiCamera);
 
-		if(entity == 0)
+		if (entity == 0)
 		{
-			text.setText("Line");
-		} else {
-			text.setText("Circle");
+			testMenu.setText("Line");
+		}
+		else
+		{
+			testMenu.setText("Circle");
 		}
 
-		window.drawText(text);
+		window.draw(testMenu);
 
-		text.clearText();
+		dotShader.use();
+		window.getShaderUniforms(dotShader);
+		window.updateMvp(canvasCamera);
+		glUniform1f(dotShader.getUniformLocation("winScale"), windowScale);
+
+		window.drawShape(canvas);
 
 		window.display();
 
@@ -385,8 +389,6 @@ int main()
 			windowScale += SCALEDELTA * windowScale;
 		}
 
-		std::cout << windowScale << std::endl;
-
 		if (event.isPointerButtonPressed(Button2Mask))
 		{
 			cameraController.update(true);
@@ -400,7 +402,7 @@ int main()
 
 		entitySwitcher.update(event.isKeyPressed(XK_space));
 
-		if(event.isKeyPressed(XK_Escape))
+		if (event.isKeyPressed(XK_Escape))
 		{
 			line.clear();
 			circle.clear();
@@ -411,12 +413,14 @@ int main()
 		canvasCamera.setView({cameraPosition.x, cameraPosition.y, 10}, cameraPosition, {0, 1, 0});
 		canvasCamera.setOrthographicProjection(-(windowSize.x / 2.) * windowScale, (windowSize.x / 2.) * windowScale,
 											   (windowSize.y / 2.) * windowScale, -(windowSize.y / 2.) * windowScale,
-											   0.1, 100);
+											   0.1, 10);
 		guiCamera.setOrthographicProjection(0, windowSize.x, windowSize.y, 0, 0.1, 10);
 	}
 
 	blank.deleteTexture();
 	font.deleteFont();
+	dotShader.deleteProgram();
+	basicShader.deleteProgram();
 
 	window.close();
 }
