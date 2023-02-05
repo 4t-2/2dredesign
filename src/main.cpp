@@ -119,7 +119,7 @@ int main()
 	agl::RenderWindow window;
 	window.setup({1920, 1080}, "2D ReDesign");
 	window.setFPS(60);
-	window.setClearColor(agl::Color::Black);
+	window.setClearColor(agl::Color::Blue);
 
 	agl::Event event;
 	event.setWindow(window);
@@ -322,6 +322,12 @@ int main()
 
 		window.clear();
 
+		dotShader.use();
+		window.getShaderUniforms(dotShader);
+		window.updateMvp(canvasCamera);
+		glUniform1f(dotShader.getUniformLocation("winScale"), windowScale);
+
+		window.drawShape(canvas);
 		basicShader.use();
 		window.getShaderUniforms(basicShader);
 		window.updateMvp(canvasCamera);
@@ -359,21 +365,16 @@ int main()
 
 		if (entity == 0)
 		{
+			testMenu.toggleButton(true);
 			testMenu.setText("Line");
 		}
 		else
 		{
+			testMenu.toggleButton(false);
 			testMenu.setText("Circle");
 		}
 
 		window.draw(testMenu);
-
-		dotShader.use();
-		window.getShaderUniforms(dotShader);
-		window.updateMvp(canvasCamera);
-		glUniform1f(dotShader.getUniformLocation("winScale"), windowScale);
-
-		window.drawShape(canvas);
 
 		window.display();
 
