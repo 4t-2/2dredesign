@@ -1,4 +1,5 @@
 #include "../lib/AGL/agl.hpp"
+#include <X11/cursorfont.h>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -119,7 +120,7 @@ int main()
 	agl::RenderWindow window;
 	window.setup({1920, 1080}, "2D ReDesign");
 	window.setFPS(60);
-	window.setClearColor(agl::Color::Blue);
+	window.setClearColor(agl::Color::Black);
 
 	agl::Event event;
 	event.setWindow(window);
@@ -363,22 +364,10 @@ int main()
 
 		window.updateMvp(guiCamera);
 
-		if (entity == 0)
-		{
-			testMenu.toggleButton(true);
-			testMenu.setText("Line");
-		}
-		else
-		{
-			testMenu.toggleButton(false);
-			testMenu.setText("Circle");
-		}
-
 		window.draw(testMenu);
 
 		window.display();
 
-		entityDrawer.update(event.isPointerButtonPressed(Button1Mask));
 		dxfSaver.update(event.isKeyPressed(XK_Return));
 
 		if (event.isKeyPressed(XK_Up))
@@ -390,16 +379,38 @@ int main()
 			windowScale += SCALEDELTA * windowScale;
 		}
 
+		int shape = 0;
+
 		if (event.isPointerButtonPressed(Button2Mask))
 		{
 			cameraController.update(true);
-			window.setCursorShape(XC_fleur);
+			shape = 58;
 		}
 		else
 		{
 			cameraController.update(false);
-			window.setCursorShape(XC_left_ptr);
+			shape = XC_left_ptr;
 		}
+
+		if (testMenu.mouseInteraction(&event))
+		{
+			shape = 60;
+		}
+		else
+		{
+			entityDrawer.update(event.isPointerButtonPressed(Button1Mask));
+		}
+
+		if (testMenu.getButtonState(0))
+		{
+			entity = 0;
+		}
+		if (testMenu.getButtonState(1))
+		{
+			entity = 1;
+		}
+
+		window.setCursorShape(shape);
 
 		entitySwitcher.update(event.isKeyPressed(XK_space));
 
