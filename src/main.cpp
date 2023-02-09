@@ -9,6 +9,7 @@
 #include "../inc/Circle.hpp"
 #include "../inc/Line.hpp"
 #include "../inc/Menu.hpp"
+#include "../inc/Text.hpp"
 #include "../inc/macros.hpp"
 
 #define CIRCLEVERTICIES 30
@@ -103,6 +104,8 @@ void DxfFile::writeEntity(Entity entity)
 	*fs << entity.type << "\n";
 	*fs << "8\n";
 	*fs << "0\n";
+	*fs << "1\n";
+	*fs << entity.str << '\n';
 	*fs << "10\n";
 	*fs << std::to_string(entity.xpp) << "\n"; // x
 	*fs << "20\n";
@@ -120,7 +123,7 @@ int main()
 	agl::RenderWindow window;
 	window.setup({1920, 1080}, "2D ReDesign");
 	window.setFPS(60);
-	window.setClearColor(agl::Color::Black);
+	window.setClearColor(agl::Color::Blue);
 
 	agl::Event event;
 	event.setWindow(window);
@@ -272,6 +275,7 @@ int main()
 		},
 		[&]() { return; });
 
+	Text text(font);
 	Listener dxfSaver([&]() { return; }, [&]() { return; },
 					  [&]() {
 						  std::string path = "./test.dxf";
@@ -290,6 +294,8 @@ int main()
 						  {
 							  file.writeEntity(entity);
 						  }
+
+							file.writeEntity(text);
 
 						  return;
 					  });
@@ -310,6 +316,10 @@ int main()
 								  cameraOffset = {0, 0};
 							  });
 
+	std::string test;
+
+	text.setStart({100, 100});
+
 	while (!event.windowClose())
 	{
 		event.pollWindow();
@@ -329,6 +339,7 @@ int main()
 		glUniform1f(dotShader.getUniformLocation("winScale"), windowScale);
 
 		window.drawShape(canvas);
+
 		basicShader.use();
 		window.getShaderUniforms(basicShader);
 		window.updateMvp(canvasCamera);
@@ -361,6 +372,9 @@ int main()
 				window.drawShape(shape);
 			});
 		}
+
+		text.setTextStr(test);
+		window.draw(text);
 
 		window.updateMvp(guiCamera);
 
@@ -419,6 +433,17 @@ int main()
 			line.clear();
 			circle.clear();
 		}
+
+		char key;
+		if (event.currentKeyPressed(&key))
+		{
+			if (key >= 32 && key <= 126)
+			{
+				test += key;
+			}
+		}
+
+		std::cout << test << '\n';
 
 		window.setViewport(0, 0, windowSize.x, windowSize.y);
 

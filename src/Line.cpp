@@ -1,5 +1,4 @@
 #include "../inc/Line.hpp"
-#include "../inc/macros.hpp"
 
 Line::Line()
 {

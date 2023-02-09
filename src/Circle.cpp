@@ -1,5 +1,4 @@
 #include "../inc/Circle.hpp"
-#include "../inc/macros.hpp"
 
 Circle::Circle()
 {
