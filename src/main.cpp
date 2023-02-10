@@ -244,7 +244,7 @@ int main()
 
 			if (entity == 0)
 			{
-				line.push_back(Line());
+				line.emplace(line.end(), lineShape);
 				line[line.size() - 1].set(pos, pos);
 			}
 			else
@@ -346,17 +346,19 @@ int main()
 
 		for (int i = 0; i < line.size(); i++)
 		{
-			window.drawShape(lineShape, [&](agl::RenderWindow &window, agl::Shape &shape) {
-				agl::Vec<float, 3> start = line[i].getStart();
-				agl::Vec<float, 3> end	 = line[i].getEnd();
+			// window.drawShape(lineShape, [&](agl::RenderWindow &window, agl::Shape &shape) {
+			// 	agl::Vec<float, 3> start = line[i].getStart();
+			// 	agl::Vec<float, 3> end	 = line[i].getEnd();
+			//
+			// 	shape.setPosition(start);
+			// 	shape.setOffset({0, 0, 2});
+			//
+			// 	shape.setSize(end - start);
+			//
+			// 	window.drawShape(shape);
+			// });
 
-				shape.setPosition(start);
-				shape.setOffset({0, 0, 2});
-
-				shape.setSize(end - start);
-
-				window.drawShape(shape);
-			});
+			window.draw(line[i]);
 		}
 
 		for (int i = 0; i < circle.size(); i++)
@@ -442,8 +444,6 @@ int main()
 				test += key;
 			}
 		}
-
-		std::cout << test << '\n';
 
 		window.setViewport(0, 0, windowSize.x, windowSize.y);
 
