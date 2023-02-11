@@ -7,15 +7,16 @@ Text::Text(agl::Font &font)
 	text.setFont(&font);
 	text.setColor(agl::Color::Red);
 	text.setScale(1);
-
-	this->setDrawFunction([&](agl::RenderWindow &window){
-				window.drawText(text);
-			});
 }
 
 Text::~Text()
 {
 	text.clearText();
+}
+
+void Text::drawFunction(agl::RenderWindow &window)
+{
+	window.drawText(text);
 }
 
 void Text::setStart(agl::Vec<float, 2> start)

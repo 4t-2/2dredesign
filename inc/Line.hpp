@@ -9,11 +9,14 @@ class Line : public Entity, public agl::Drawable
 		agl::Vec<float, 2> start;
 		agl::Vec<float, 2> end;
 
-		agl::Shape *shape;
+		agl::Shape &shape;
+
+		std::string type = "LINE";
 
 	public:
-		Line(agl::Shape &lineShape);
-		Line(const Line&);
+		Line(agl::Shape &shape) : shape(shape){};
+
+		void drawFunction(agl::RenderWindow &window);
 
 		void set(agl::Vec<float, 2> start, agl::Vec<float, 2> end);
 

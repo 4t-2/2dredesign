@@ -1,32 +1,12 @@
 #include "../inc/Line.hpp"
 
-Line::Line(agl::Shape &lineShape)
+void Line::drawFunction(agl::RenderWindow &window)
 {
-	type = "LINE";
+	shape.setPosition(start);
+	shape.setOffset({0, 0, 2});
+	shape.setSize(end - start);
 
-	shape = &lineShape;
-
-	std::cout << "init " << shape << '\n';
-
-	this->setDrawFunction([&](agl::RenderWindow &window) {
-		shape->setPosition(start);
-		shape->setOffset({0, 0, 2});
-
-		shape->setSize(end - start);
-
-	std::cout << shape << '\n';
-		std::cout << this << '\n';
-
-		window.drawShape(lineShape);
-	});
-}
-
-Line::Line(const Line& line)
-{
-	this->start = line.start;
-	this->end = line.end;
-	this->shape = line.shape;
-	this->drawFunction = line.drawFunction;
+	window.drawShape(shape);
 }
 
 void Line::setStart(agl::Vec<float, 2> start)

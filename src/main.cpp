@@ -218,8 +218,6 @@ int main()
 	std::vector<Line>	line;
 	std::vector<Circle> circle;
 
-	circle.push_back(Circle());
-
 	agl::Vec<float, 2> cameraPosition = canvas.getSize() * .5;
 
 	int entity = 0;
@@ -244,12 +242,12 @@ int main()
 
 			if (entity == 0)
 			{
-				line.emplace(line.end(), lineShape);
+				line.emplace_back(lineShape);
 				line[line.size() - 1].set(pos, pos);
 			}
 			else
 			{
-				circle.push_back(Circle());
+				circle.emplace_back(circleShape);
 				circle[circle.size() - 1].setStart(pos);
 			}
 
@@ -275,7 +273,7 @@ int main()
 		},
 		[&]() { return; });
 
-	Text text(font);
+	Text	 text(font);
 	Listener dxfSaver([&]() { return; }, [&]() { return; },
 					  [&]() {
 						  std::string path = "./test.dxf";
@@ -295,7 +293,7 @@ int main()
 							  file.writeEntity(entity);
 						  }
 
-							file.writeEntity(text);
+						  file.writeEntity(text);
 
 						  return;
 					  });
@@ -344,35 +342,14 @@ int main()
 		window.getShaderUniforms(basicShader);
 		window.updateMvp(canvasCamera);
 
-		for (int i = 0; i < line.size(); i++)
+		for (Line line : line)
 		{
-			// window.drawShape(lineShape, [&](agl::RenderWindow &window, agl::Shape &shape) {
-			// 	agl::Vec<float, 3> start = line[i].getStart();
-			// 	agl::Vec<float, 3> end	 = line[i].getEnd();
-			//
-			// 	shape.setPosition(start);
-			// 	shape.setOffset({0, 0, 2});
-			//
-			// 	shape.setSize(end - start);
-			//
-			// 	window.drawShape(shape);
-			// });
-
-			window.draw(line[i]);
+			window.draw(line);
 		}
 
-		for (int i = 0; i < circle.size(); i++)
+		for (Circle circle : circle)
 		{
-			window.drawShape(circleShape, [&](agl::RenderWindow &window, agl::Shape &shape) {
-				shape.setPosition(circle[i].getStart());
-				shape.setOffset({0, 0, 2});
-
-				agl::Vec<float, 2> size = agl::Vec<float, 2>{1, 1} * circle[i].getRadius();
-
-				shape.setSize(size);
-
-				window.drawShape(shape);
-			});
+			window.draw(circle);
 		}
 
 		text.setTextStr(test);

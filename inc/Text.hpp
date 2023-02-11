@@ -15,6 +15,8 @@ class Text : public Entity, public agl::Drawable
 		Text(agl::Font &font);
 		~Text();
 
+		void drawFunction(agl::RenderWindow &window);
+
 		void setStart(agl::Vec<float, 2> start);
 
 		void setHeight(float height);

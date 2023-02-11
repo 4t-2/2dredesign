@@ -89,12 +89,13 @@ class Button : public agl::Drawable
 			text.setScale(1);
 			text.setPosition(position + agl::Vec<float, 3>{BUTTON_PADDING, 0, 0.2});
 			text.setText(str);
+		}
 
-			this->setDrawFunction([&](agl::RenderWindow &window) {
-				window.drawShape(bodyShape);
-				window.drawShape(shadowShape);
-				window.drawText(text);
-			});
+		void drawFunction(agl::RenderWindow &window)
+		{
+			window.drawShape(bodyShape);
+			window.drawShape(shadowShape);
+			window.drawText(text);
 		}
 
 		void setState(bool state)
@@ -162,17 +163,6 @@ template <typename... T> class Menu : public agl::Drawable
 	public:
 		Menu()
 		{
-			this->setDrawFunction([&](agl::RenderWindow &window) {
-				window.drawShape(outerShadowShape);
-				window.drawShape(borderShape);
-				window.drawShape(bodyShape);
-				window.drawShape(innerShadowShape);
-
-				for (int i = 0; i < totalButtons; i++)
-				{
-					window.draw(button[i]);
-				}
-			});
 		}
 
 		~Menu()
@@ -185,6 +175,19 @@ template <typename... T> class Menu : public agl::Drawable
 			delete[] button;
 
 			text.clearText();
+		}
+
+		void drawFunction(agl::RenderWindow &window)
+		{
+			window.drawShape(outerShadowShape);
+			window.drawShape(borderShape);
+			window.drawShape(bodyShape);
+			window.drawShape(innerShadowShape);
+
+			for (int i = 0; i < totalButtons; i++)
+			{
+				window.draw(button[i]);
+			}
 		}
 
 		bool mouseInteraction(agl::Event *event)
