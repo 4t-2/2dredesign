@@ -125,6 +125,8 @@ int main()
 	window.setFPS(60);
 	window.setClearColor(agl::Color::Blue);
 
+	XSelectInput(window.getDisplay(), window.getWindow(), ButtonPressMask | ButtonReleaseMask);
+
 	agl::Event event;
 	event.setWindow(window);
 
@@ -320,9 +322,23 @@ int main()
 
 	while (!event.windowClose())
 	{
-		event.pollWindow();
-		event.pollPointer();
-		event.pollKeyboard();
+		int mouseWheelPos = 0;
+
+		event.poll([&](XEvent xev) {
+			switch (xev.type)
+			{
+				case ButtonPress:
+					if (xev.xbutton.button == 4)
+					{
+						mouseWheelPos = 1;
+					}
+					if (xev.xbutton.button == 5)
+					{
+						mouseWheelPos = -1;
+					}
+					break;
+			}
+		});
 
 		XWindowAttributes XWinAtt = window.getWindowAttributes();
 
@@ -363,11 +379,11 @@ int main()
 
 		dxfSaver.update(event.isKeyPressed(XK_Return));
 
-		if (event.isKeyPressed(XK_Up))
+		if (mouseWheelPos == 1)
 		{
 			windowScale -= SCALEDELTA * windowScale;
 		}
-		if (event.isKeyPressed(XK_Down))
+		if (mouseWheelPos == -1)
 		{
 			windowScale += SCALEDELTA * windowScale;
 		}
