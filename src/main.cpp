@@ -118,6 +118,12 @@ void DxfFile::writeEntity(Entity entity)
 	*fs << std::to_string(entity.dpfv) << "\n"; // x
 }
 
+agl::Vec<float, 2> getCursorScenePosition(agl::Vec<float, 2> cursorWinPos, agl::Vec<float, 2> winSize, float winScale,
+										  agl::Vec<float, 2> cameraPos)
+{
+	return ((cursorWinPos - (winSize * .5)) * winScale) + cameraPos;
+}
+
 int main()
 {
 	agl::RenderWindow window;
@@ -381,11 +387,31 @@ int main()
 
 		if (mouseWheelPos == 1)
 		{
-			windowScale -= SCALEDELTA * windowScale;
+			float scale = SCALEDELTA * windowScale;
+
+			agl::Vec<float, 2> oldPos = getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
+
+			windowScale -= scale;
+
+			agl::Vec<float, 2> newPos = getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
+
+			agl::Vec<float, 2> offset = oldPos - newPos;
+
+			cameraPosition = cameraPosition + offset;
 		}
 		if (mouseWheelPos == -1)
 		{
-			windowScale += SCALEDELTA * windowScale;
+			float scale = SCALEDELTA * windowScale;
+
+			agl::Vec<float, 2> oldPos = getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
+
+			windowScale += scale;
+
+			agl::Vec<float, 2> newPos = getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
+
+			agl::Vec<float, 2> offset = oldPos - newPos;
+
+			cameraPosition = cameraPosition + offset;
 		}
 
 		int shape = 0;
