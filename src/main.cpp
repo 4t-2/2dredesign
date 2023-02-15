@@ -1,4 +1,5 @@
 #include "../lib/AGL/agl.hpp"
+#include <X11/X.h>
 #include <X11/cursorfont.h>
 #include <fstream>
 #include <string>
@@ -131,7 +132,7 @@ int main()
 	window.setFPS(60);
 	window.setClearColor(agl::Color::Blue);
 
-	XSelectInput(window.getDisplay(), window.getWindow(), ButtonPressMask | ButtonReleaseMask);
+	XSelectInput(window.getDisplay(), window.getWindow(), ButtonPressMask | KeyPressMask);
 
 	agl::Event event;
 	event.setWindow(window);
@@ -282,6 +283,8 @@ int main()
 		[&]() { return; });
 
 	Text	 text(font);
+	text.setHeight(10);
+
 	Listener dxfSaver([&]() { return; }, [&]() { return; },
 					  [&]() {
 						  std::string path = "./test.dxf";
@@ -328,7 +331,8 @@ int main()
 
 	while (!event.windowClose())
 	{
-		int mouseWheelPos = 0;
+		int	 mouseWheelPos = 0;
+		char key = 0;
 
 		event.poll([&](XEvent xev) {
 			switch (xev.type)
@@ -342,6 +346,11 @@ int main()
 					{
 						mouseWheelPos = -1;
 					}
+					std::cout << "wheel" << '\n';
+					break;
+				case KeyPress:
+					event.currentKeyPressed(&key);
+					std::cout << "key" << '\n';
 					break;
 			}
 		});
@@ -375,6 +384,8 @@ int main()
 		}
 
 		text.setTextStr(test);
+
+		std::cout << test << std::endl;
 		window.draw(text);
 
 		window.updateMvp(guiCamera);
@@ -389,11 +400,13 @@ int main()
 		{
 			float scale = SCALEDELTA * windowScale;
 
-			agl::Vec<float, 2> oldPos = getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
+			agl::Vec<float, 2> oldPos =
+				getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
 
 			windowScale -= scale;
 
-			agl::Vec<float, 2> newPos = getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
+			agl::Vec<float, 2> newPos =
+				getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
 
 			agl::Vec<float, 2> offset = oldPos - newPos;
 
@@ -403,11 +416,13 @@ int main()
 		{
 			float scale = SCALEDELTA * windowScale;
 
-			agl::Vec<float, 2> oldPos = getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
+			agl::Vec<float, 2> oldPos =
+				getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
 
 			windowScale += scale;
 
-			agl::Vec<float, 2> newPos = getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
+			agl::Vec<float, 2> newPos =
+				getCursorScenePosition(event.getPointerWindowPosition(), windowSize, windowScale, cameraPosition);
 
 			agl::Vec<float, 2> offset = oldPos - newPos;
 
@@ -455,13 +470,9 @@ int main()
 			circle.clear();
 		}
 
-		char key;
-		if (event.currentKeyPressed(&key))
+		if (key >= 32 && key <= 126)
 		{
-			if (key >= 32 && key <= 126)
-			{
-				test += key;
-			}
+			test += key;
 		}
 
 		window.setViewport(0, 0, windowSize.x, windowSize.y);

@@ -22,8 +22,8 @@ void Text::drawFunction(agl::RenderWindow &window)
 void Text::setStart(agl::Vec<float, 2> start)
 {
 	this->start = start;
-	xop = start.x;
-	yop = CANVAS_Y - start.y;
+	xpp = start.x;
+	ypp = CANVAS_Y - start.y;
 	
 	text.setPosition(agl::Vec<float, 3>(start) + agl::Vec<float, 3>{0, 0, 2});
 }
